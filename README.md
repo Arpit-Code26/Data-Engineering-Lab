@@ -1,6 +1,3 @@
-Here is a short GitHub README file for your automated weather data ingestion project using MongoDB:
-
-***
 
 # Automated Weather Data Ingestion with MongoDB
 
