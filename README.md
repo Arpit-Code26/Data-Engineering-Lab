@@ -1,6 +1,3 @@
-Here is a simple, clear README file for your GitHub repo based on your final MySQL data modeling and analytics project:
-
-***
 
 # Data Modeling for Analytics (DDMA)
 
