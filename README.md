@@ -21,5 +21,4 @@ Integrate sales data with weather data in MySQL to analyze weather impact on sal
 - Extend script for multiple dates/cities if needed.
 
 
-[9](https://bulldogjob.com/readme/how-to-write-a-good-readme-for-your-github-project)
-[10](https://dev.to/kwing25/how-to-write-a-good-readme-for-your-project-1l10)
+
