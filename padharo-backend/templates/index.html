@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rajasthan Tourism Intelligence - Royal Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;800&family=Lato:wght@300;400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --royal-gold: #d4af37;
+            --royal-gold-light: #f3e5ab;
+            --royal-blue: #0f172a;
+            --deep-maroon: #4a0404;
+            --sandstone: #e6ccb2;
+        }
+
+        body {
+            background-color: #050505;
+            background-image: 
+                radial-gradient(circle at 50% 0%, #1e1b4b 0%, #000000 70%),
+                url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23d4af37' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            font-family: 'Lato', sans-serif;
+            color: var(--sandstone);
+            overflow-x: hidden;
+        }
+
+        /* Typography Overrides */
+        h1, h2, h3, h4, .font-heritage {
+            font-family: 'Cinzel', serif;
+            letter-spacing: 0.05em;
+        }
+        
+        .font-elegant {
+            font-family: 'Playfair Display', serif;
+        }
+
+        /* Scrollbar Styling for Aesthetics */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1a1a1a; }
+        ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #856930, #d4af37); border-radius: 4px; }
+
+        /* Royal Cards (Glassmorphism + Gold Border) */
+        .royal-card {
+            background: rgba(20, 20, 25, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+        .text-gradient-gold {
+            background: linear-gradient(to right, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0px 2px 4px rgba(0,0,0,0.3);
+        }
+        .hover-glow:hover {
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
+            border-color: rgba(212, 175, 55, 0.6);
+            transform: translateY(-2px);
+            transition: all 0.3s ease;
+        }
+        .number-counter {
+            font-variant-numeric: tabular-nums;
+            font-family: 'Cinzel', serif;
+        }
+
+        /* Tab Styling */
+        .tab-btn { position: relative; }
+        .tab-btn.active { color: var(--royal-gold); }
+        .tab-btn.active::after {
+            content: '♦'; position: absolute; bottom: -8px; left: 50%;
+            transform: translateX(-50%); font-size: 12px; color: var(--royal-gold);
+        }
+
+        /* Button Styling */
+        .btn-royal {
+            background: linear-gradient(135deg, #800000 0%, #5a0000 100%);
+            border: 1px solid #d4af37; color: #d4af37; text-transform: uppercase;
+            letter-spacing: 1px; font-family: 'Cinzel', serif;
+        }
+        .btn-royal:hover {
+            background: linear-gradient(135deg, #a00000 0%, #700000 100%);
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <div class="h-1 w-full bg-gradient-to-r from-transparent via-[#d4af37] to-transparent"></div>
+
+    <header class="relative pt-8 pb-10 px-4">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="text-center md:text-left">
+                    <div class="flex items-center gap-3 justify-center md:justify-start mb-2">
+                        <span class="text-3xl">🏯</span>
+                        <h1 class="text-3xl md:text-5xl font-bold text-gradient-gold">Rajasthan Tourism</h1>
+                    </div>
+                    <p class="text-lg text-[#e6ccb2] font-elegant italic opacity-80 border-t border-[#d4af37]/30 pt-2 inline-block">
+                        Royal Intelligence Command Center
+                    </p>
+                </div>
+                
+                <div class="royal-card px-6 py-3 rounded-full flex items-center gap-4">
+                    <div class="text-right">
+                        <p class="text-xs text-[#d4af37] uppercase tracking-widest font-heritage">Jaipur Time</p>
+                        <p class="text-xl font-bold text-white font-mono" id="current-time">--:--:--</p>
+                    </div>
+                    <div class="h-8 w-px bg-[#d4af37]/50"></div>
+                    <div class="flex items-center gap-2">
+                        <span class="relative flex h-3 w-3">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                        </span>
+                        <span class="text-xs font-bold text-green-400 tracking-wider">LIVE FEED</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <nav class="sticky top-0 z-50 bg-[#050505]/90 backdrop-blur-md border-b border-[#d4af37]/20 shadow-2xl">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-center md:justify-start gap-2 md:gap-8 overflow-x-auto py-2">
+                <button onclick="switchTab('dashboard')" class="tab-btn active py-3 px-4 text-[#e6ccb2] hover:text-[#d4af37] font-heritage text-sm md:text-base transition-all duration-300">
+                    📊 Dashboard
+                </button>
+                <button onclick="switchTab('passes')" class="tab-btn py-3 px-4 text-[#e6ccb2] hover:text-[#d4af37] font-heritage text-sm md:text-base transition-all duration-300">
+                    🎫 Royal Passes
+                </button>
+                <button onclick="switchTab('analytics')" class="tab-btn py-3 px-4 text-[#e6ccb2] hover:text-[#d4af37] font-heritage text-sm md:text-base transition-all duration-300">
+                    📈 Foresight
+                </button>
+                <button onclick="switchTab('hotels')" class="tab-btn py-3 px-4 text-[#e6ccb2] hover:text-[#d4af37] font-heritage text-sm md:text-base transition-all duration-300">
+                    🏨 Hospitality
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        
+        <div id="dashboard-tab" class="tab-content block animate-fade-in">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+                <div class="royal-card rounded-xl p-6 hover-glow">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-[#d4af37] text-xs font-bold uppercase tracking-widest mb-1">Today's Arrivals</p>
+                            <p class="text-4xl font-bold text-white mt-1 number-counter" id="kpi-arrivals">Loading...</p>
+                            <div class="flex items-center mt-3 text-xs">
+                                <span class="text-green-400 bg-green-900/30 px-2 py-0.5 rounded border border-green-800">▲ 8.5%</span>
+                                <span class="text-gray-500 ml-2">vs. Average</span>
+                            </div>
+                        </div>
+                        <div class="p-3 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/20">
+                            <span class="text-2xl">👥</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="royal-card rounded-xl p-6 hover-glow">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-[#d4af37] text-xs font-bold uppercase tracking-widest mb-1">M-T-D Visitors</p>
+                            <p class="text-4xl font-bold text-white mt-1 number-counter" id="kpi-mtd">248,320</p>
+                            <div class="flex items-center mt-3 text-xs">
+                                <span class="text-green-400 bg-green-900/30 px-2 py-0.5 rounded border border-green-800">▲ 12.3%</span>
+                                <span class="text-gray-500 ml-2">Year on Year</span>
+                            </div>
+                        </div>
+                        <div class="p-3 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/20">
+                            <span class="text-2xl">🏛️</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="royal-card rounded-xl p-6 hover-glow">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-[#d4af37] text-xs font-bold uppercase tracking-widest mb-1">Foreign Tourists</p>
+                            <p class="text-4xl font-bold text-white mt-1 number-counter">38%</p>
+                            <div class="flex items-center mt-3 text-xs">
+                                <span class="text-green-400 bg-green-900/30 px-2 py-0.5 rounded border border-green-800">▲ 2.1%</span>
+                                <span class="text-gray-500 ml-2">Increase</span>
+                            </div>
+                        </div>
+                        <div class="p-3 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/20">
+                            <span class="text-2xl">🌍</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="royal-card rounded-xl p-6 hover-glow">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-[#d4af37] text-xs font-bold uppercase tracking-widest mb-1">Fort Capacity</p>
+                            <p class="text-4xl font-bold text-white mt-1 number-counter">76%</p>
+                            <div class="flex items-center mt-3 text-xs">
+                                <span class="text-red-400 bg-red-900/30 px-2 py-0.5 rounded border border-red-800">▼ 1.5%</span>
+                                <span class="text-gray-500 ml-2">vs. Peak</span>
+                            </div>
+                        </div>
+                        <div class="p-3 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/20">
+                            <span class="text-2xl">🏰</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
+                <div class="lg:col-span-2 royal-card rounded-2xl p-6 md:p-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-2xl font-bold text-white"><span class="text-[#d4af37]">⚔</span> Live Footfall</h3>
+                        <span class="text-xs text-gray-400 uppercase tracking-widest border border-gray-700 rounded px-2 py-1">24 Hours</span>
+                    </div>
+                    <div style="height: 300px; width: 100%;">
+                        <canvas id="footfallChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="royal-card rounded-2xl p-6 md:p-8">
+                    <h3 class="text-2xl font-bold text-white mb-6 text-center"><span class="text-[#d4af37]">◈</span> Districts</h3>
+                    <div style="height: 300px; width: 100%;">
+                        <canvas id="districtChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="royal-card rounded-2xl p-6 md:p-8 mb-10">
+                <h3 class="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+                    <span class="text-[#d4af37]">👑</span> Heritage Sites Status
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-[#d4af37]/30">
+                                <th class="text-left py-4 px-4 text-[#d4af37] font-heritage tracking-wider uppercase">Attraction</th>
+                                <th class="text-left py-4 px-4 text-[#d4af37] font-heritage tracking-wider uppercase">Current</th>
+                                <th class="text-left py-4 px-4 text-[#d4af37] font-heritage tracking-wider uppercase">Capacity</th>
+                                <th class="text-left py-4 px-4 text-[#d4af37] font-heritage tracking-wider uppercase">Load</th>
+                                <th class="text-left py-4 px-4 text-[#d4af37] font-heritage tracking-wider uppercase">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attractions-table-body" class="font-elegant text-base">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="royal-card rounded-2xl p-6 md:p-8 border-l-4 border-l-red-800">
+                <h3 class="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+                    <span class="animate-pulse">📜</span> Royal Decrees & Alerts
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="alerts-container">
+                    </div>
+            </div>
+        </div>
+
+        <div id="passes-tab" class="tab-content hidden animate-fade-in">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="royal-card rounded-2xl p-8 bg-[url('https://www.transparenttextures.com/patterns/black-scales.png')]">
+                    <h3 class="text-2xl font-bold text-gradient-gold mb-6 border-b border-[#d4af37]/30 pb-4">Issue Royal Permit</h3>
+                    <form class="space-y-5" onsubmit="generatePass(event)">
+                        <div>
+                            <label class="block text-xs font-bold text-[#d4af37] uppercase tracking-widest mb-2">Select Monument *</label>
+                            <select class="w-full px-4 py-3 rounded bg-[#0f0f10] text-white border border-[#4a4a4a] focus:border-[#d4af37] focus:outline-none font-elegant">
+                                <option>City Palace (Jaipur)</option>
+                                <option>Jantar Mantar</option>
+                                <option>Hawa Mahal</option>
+                                <option>Lake Palace (Udaipur)</option>
+                                <option>Mehrangarh Fort</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-[#d4af37] uppercase tracking-widest mb-2">Guest Name *</label>
+                                <input type="text" placeholder="John Doe" class="w-full px-4 py-3 rounded bg-[#0f0f10] text-white border border-[#4a4a4a] focus:border-[#d4af37] focus:outline-none" required>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-[#d4af37] uppercase tracking-widest mb-2">Email *</label>
+                                <input type="email" placeholder="john@example.com" class="w-full px-4 py-3 rounded bg-[#0f0f10] text-white border border-[#4a4a4a] focus:border-[#d4af37] focus:outline-none" required>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-[#d4af37] uppercase tracking-widest mb-3">Privilege Level *</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <label class="flex items-center p-3 border border-[#4a4a4a] rounded hover:border-[#d4af37] cursor-pointer transition bg-[#1a1a1a]">
+                                    <input type="radio" name="passType" value="SINGLE" class="mr-3 accent-[#d4af37]" required checked>
+                                    <span class="text-gray-300 text-sm">Standard (₹300)</span>
+                                </label>
+                                <label class="flex items-center p-3 border border-[#4a4a4a] rounded hover:border-[#d4af37] cursor-pointer transition bg-[#1a1a1a]">
+                                    <input type="radio" name="passType" value="3DAY" class="mr-3 accent-[#d4af37]">
+                                    <span class="text-gray-300 text-sm">3-Day Access (₹1,200)</span>
+                                </label>
+                                <label class="flex items-center p-3 border border-[#d4af37] rounded bg-[#d4af37]/10 cursor-pointer transition">
+                                    <input type="radio" name="passType" value="HERITAGE" class="mr-3 accent-[#d4af37]">
+                                    <span class="text-[#d4af37] font-bold text-sm">Heritage (₹2,500)</span>
+                                </label>
+                                <label class="flex items-center p-3 border border-[#d4af37] rounded bg-gradient-to-r from-[#d4af37]/20 to-transparent cursor-pointer transition">
+                                    <input type="radio" name="passType" value="PREMIUM" class="mr-3 accent-[#d4af37]">
+                                    <span class="text-[#d4af37] font-bold text-sm">Maharaja (₹5,000)</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full py-4 btn-royal rounded shadow-lg font-bold transition-all transform hover:-translate-y-1">
+                            Issue Stamped Pass
+                        </button>
+                    </form>
+                </div>
+
+                <div class="royal-card rounded-2xl p-8">
+                    <h3 class="text-2xl font-bold text-white mb-6 border-b border-[#d4af37]/30 pb-4">Recent Issuances</h3>
+                    <div class="space-y-4" id="recent-passes-list">
+                        </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="analytics-tab" class="tab-content hidden animate-fade-in">
+            <div class="royal-card rounded-2xl p-8">
+                <h3 class="text-3xl font-bold text-gradient-gold mb-8 text-center font-heritage">Strategic Foresight</h3>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="royal-card rounded-xl p-6 border border-[#4a4a4a] bg-[#0a0a0a]">
+                        <h4 class="text-lg font-bold text-[#d4af37] mb-4 font-heritage uppercase tracking-wider">30-Day Projection</h4>
+                        <div style="height: 300px; width: 100%;">
+                            <canvas id="forecastChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="royal-card rounded-xl p-6 border border-[#4a4a4a] bg-[#0a0a0a]">
+                        <h4 class="text-lg font-bold text-[#d4af37] mb-6 font-heritage uppercase tracking-wider">Intelligence Report</h4>
+                        <ul class="space-y-4 text-gray-300">
+                            <li class="flex items-start gap-4 p-3 bg-[#1a1a1a] rounded border-l-2 border-green-500">
+                                <span class="text-green-400 font-bold mt-1">✓</span>
+                                <div>
+                                    <strong class="text-white block font-heritage">Peak Engagement</strong>
+                                    <span class="text-sm font-elegant italic">11:00 AM - 3:00 PM constitutes 62% of daily footfall.</span>
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-4 p-3 bg-[#1a1a1a] rounded border-l-2 border-[#d4af37]">
+                                <span class="text-[#d4af37] font-bold mt-1">!</span>
+                                <div>
+                                    <strong class="text-white block font-heritage">Growth Trajectory</strong>
+                                    <span class="text-sm font-elegant italic">+12.3% month-over-month surge observed.</span>
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-4 p-3 bg-[#1a1a1a] rounded border-l-2 border-blue-400">
+                                <span class="text-blue-400 font-bold mt-1">i</span>
+                                <div>
+                                    <strong class="text-white block font-heritage">Global Interest</strong>
+                                    <span class="text-sm font-elegant italic">International visitors now 38% of total volume.</span>
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-4 p-3 bg-[#1a1a1a] rounded border-l-2 border-red-500">
+                                <span class="text-red-400 font-bold mt-1">⚠</span>
+                                <div>
+                                    <strong class="text-white block font-heritage">Capacity Warning</strong>
+                                    <span class="text-sm font-elegant italic">Hawa Mahal approaching critical saturation (95%).</span>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="hotels-tab" class="tab-content hidden animate-fade-in">
+            <div class="royal-card rounded-2xl p-8">
+                <h3 class="text-3xl font-bold text-gradient-gold mb-8 font-heritage">Hospitality Index</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="royal-card rounded-xl p-6 hover-glow bg-gradient-to-b from-[#1a1a1a] to-[#0a0a0a]">
+                        <h4 class="text-xl font-bold text-[#d4af37] mb-4 font-heritage border-b border-[#333] pb-2">Jaipur</h4>
+                        <div class="space-y-3 font-elegant">
+                            <div class="flex justify-between"><span class="text-gray-400">Inventory</span><span class="text-white font-bold">680</span></div>
+                            <div class="flex justify-between"><span class="text-gray-400">Occupancy</span><span class="text-green-400 font-bold">82%</span></div>
+                            <div class="flex justify-between"><span class="text-gray-400">Rating</span><span class="text-[#d4af37] font-bold">4.4★</span></div>
+                        </div>
+                    </div>
+                    <div class="royal-card rounded-xl p-6 hover-glow bg-gradient-to-b from-[#1a1a1a] to-[#0a0a0a]">
+                        <h4 class="text-xl font-bold text-[#d4af37] mb-4 font-heritage border-b border-[#333] pb-2">Udaipur</h4>
+                        <div class="space-y-3 font-elegant">
+                            <div class="flex justify-between"><span class="text-gray-400">Inventory</span><span class="text-white font-bold">340</span></div>
+                            <div class="flex justify-between"><span class="text-gray-400">Occupancy</span><span class="text-green-400 font-bold">76%</span></div>
+                            <div class="flex justify-between"><span class="text-gray-400">Rating</span><span class="text-[#d4af37] font-bold">4.5★</span></div>
+                        </div>
+                    </div>
+                    <div class="royal-card rounded-xl p-6 hover-glow bg-gradient-to-b from-[#1a1a1a] to-[#0a0a0a]">
+                        <h4 class="text-xl font-bold text-[#d4af37] mb-4 font-heritage border-b border-[#333] pb-2">Jodhpur</h4>
+                        <div class="space-y-3 font-elegant">
+                            <div class="flex justify-between"><span class="text-gray-400">Inventory</span><span class="text-white font-bold">240</span></div>
+                            <div class="flex justify-between"><span class="text-gray-400">Occupancy</span><span class="text-yellow-500 font-bold">64%</span></div>
+                            <div class="flex justify-between"><span class="text-gray-400">Rating</span><span class="text-[#d4af37] font-bold">4.1★</span></div>
+                        </div>
+                    </div>
+                    <div class="royal-card rounded-xl p-6 hover-glow bg-gradient-to-b from-[#1a1a1a] to-[#0a0a0a]">
+                        <h4 class="text-xl font-bold text-[#d4af37] mb-4 font-heritage border-b border-[#333] pb-2">Pushkar</h4>
+                        <div class="space-y-3 font-elegant">
+                            <div class="flex justify-between"><span class="text-gray-400">Inventory</span><span class="text-white font-bold">150</span></div>
+                            <div class="flex justify-between"><span class="text-gray-400">Occupancy</span><span class="text-green-400 font-bold">72%</span></div>
+                            <div class="flex justify-between"><span class="text-gray-400">Rating</span><span class="text-[#d4af37] font-bold">4.6★</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="royal-card rounded-xl p-6">
+                    <h4 class="text-xl font-bold text-white mb-6 font-heritage">Elite Residences</h4>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="border-b border-[#d4af37]/30">
+                                    <th class="text-left py-3 px-4 text-[#d4af37] font-heritage">Hotel Name</th>
+                                    <th class="text-left py-3 px-4 text-[#d4af37] font-heritage">District</th>
+                                    <th class="text-left py-3 px-4 text-[#d4af37] font-heritage">Suites</th>
+                                    <th class="text-left py-3 px-4 text-[#d4af37] font-heritage">Status</th>
+                                    <th class="text-left py-3 px-4 text-[#d4af37] font-heritage">Rating</th>
+                                </tr>
+                            </thead>
+                            <tbody class="font-elegant">
+                                <tr class="border-b border-gray-800 hover:bg-[#d4af37]/5 transition">
+                                    <td class="py-3 px-4 text-white font-medium">Rambagh Palace</td>
+                                    <td class="py-3 px-4 text-gray-400">Jaipur</td>
+                                    <td class="py-3 px-4 text-gray-400">79</td>
+                                    <td class="py-3 px-4"><span class="inline-block px-3 py-1 rounded border border-green-900 bg-green-900/20 text-green-400">94%</span></td>
+                                    <td class="py-3 px-4 text-[#d4af37] font-semibold">★ 4.7</td>
+                                </tr>
+                                <tr class="border-b border-gray-800 hover:bg-[#d4af37]/5 transition">
+                                    <td class="py-3 px-4 text-white font-medium">City Palace Hotel</td>
+                                    <td class="py-3 px-4 text-gray-400">Jaipur</td>
+                                    <td class="py-3 px-4 text-gray-400">45</td>
+                                    <td class="py-3 px-4"><span class="inline-block px-3 py-1 rounded border border-green-900 bg-green-900/20 text-green-400">88%</span></td>
+                                    <td class="py-3 px-4 text-[#d4af37] font-semibold">★ 4.5</td>
+                                </tr>
+                                <tr class="border-b border-gray-800 hover:bg-[#d4af37]/5 transition">
+                                    <td class="py-3 px-4 text-white font-medium">Lake Palace Hotel</td>
+                                    <td class="py-3 px-4 text-gray-400">Udaipur</td>
+                                    <td class="py-3 px-4 text-gray-400">83</td>
+                                    <td class="py-3 px-4"><span class="inline-block px-3 py-1 rounded border border-green-900 bg-green-900/20 text-green-400">91%</span></td>
+                                    <td class="py-3 px-4 text-[#d4af37] font-semibold">★ 4.8</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- API & DATA CONFIGURATION ---
+        const API_BASE_URL = 'http://127.0.0.1:5000'; 
+        let footfallChart, districtChart, forecastChart;
+        
+        // --- 1. DATA FETCHING FUNCTIONS (Talking to Flask Backend) ---
+
+        // Fetches Attraction Data and updates KPIs and Table
+        async function fetchAttractionData() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/attractions`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                const data = await response.json();
+                
+                // 1. Update KPIs
+                const totalVisitors = data.reduce((sum, attr) => sum + attr.current_visitors, 0);
+                document.getElementById('kpi-arrivals').textContent = totalVisitors.toLocaleString('en-IN');
+                
+                // 2. Populate the Attractions Table
+                populateAttractionsTable(data); 
+                
+            } catch (error) {
+                console.error("❌ Error fetching attraction data. Is the Flask server running?", error);
+                document.getElementById('kpi-arrivals').textContent = 'API Error';
+            }
+        }
+
+        // Fetches Recent Passes Data
+        async function fetchRecentPassesData() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/passes/recent`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                const data = await response.json();
+                populateRecentPasses(data); 
+
+            } catch (error) {
+                console.error("❌ Error fetching recent passes data.", error);
+            }
+        }
+
+
+        // --- 2. DOM MANIPULATION FUNCTIONS ---
+
+        // Populates attractions table using data fetched from the API
+        function populateAttractionsTable(data) {
+            const tbody = document.getElementById('attractions-table-body');
+            tbody.innerHTML = ''; // Clear table before inserting new data
+            
+            data.forEach(attr => {
+                // NOTE: Using property names from backend schema: current_visitors, max_capacity
+                const utilization = (attr.current_visitors / attr.max_capacity) * 100;
+                
+                let statusColor = 'text-green-400';
+                let barColor = 'bg-gradient-to-r from-green-600 to-green-400';
+                let statusText = 'AVAILABLE';
+
+                if (utilization > 80) {
+                    statusColor = 'text-red-400';
+                    barColor = 'bg-gradient-to-r from-red-800 to-red-600';
+                    statusText = 'CRITICAL';
+                } else if (utilization > 60) {
+                    statusColor = 'text-[#d4af37]';
+                    barColor = 'bg-gradient-to-r from-[#b38728] to-[#fcf6ba]';
+                    statusText = 'HIGH DEMAND';
+                }
+
+                const row = `
+                    <tr class="border-b border-[#333] hover:bg-[#d4af37]/5 transition">
+                        <td class="py-4 px-4 text-white font-medium">${attr.name}</td>
+                        <td class="py-4 px-4 text-[#d4af37] font-mono font-bold">${attr.current_visitors}</td>
+                        <td class="py-4 px-4 text-gray-500 font-mono">${attr.max_capacity}</td>
+                        <td class="py-4 px-4">
+                            <div class="w-full bg-[#1a1a1a] rounded-full h-1.5 inline-block mr-2 border border-[#333]">
+                                <div class="h-1.5 rounded-full ${barColor}" style="width: ${utilization}%"></div>
+                            </div>
+                            <span class="text-xs text-gray-400 block mt-1">${utilization.toFixed(1)}%</span>
+                        </td>
+                        <td class="py-4 px-4">
+                            <span class="text-xs font-bold tracking-widest ${statusColor}">${statusText}</span>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        }
+
+        // Populates recent passes using data fetched from the API
+        function populateRecentPasses(data) {
+            const list = document.getElementById('recent-passes-list');
+            list.innerHTML = ''; // Clear list before inserting new data
+            
+            data.forEach(pass => {
+                const statusColor = pass.status === 'Used' ? 'text-gray-500' : 
+                                   pass.status === 'Active' ? 'text-green-400' : 
+                                   pass.status === 'Upcoming' ? 'text-blue-400' : 
+                                   'text-red-400';
+
+                const item = `
+                    <div class="p-4 bg-[#1a1a1a] rounded border border-[#333] hover:border-[#d4af37] transition group">
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center gap-4">
+                                <div class="h-10 w-10 rounded-full bg-[#d4af37]/10 flex items-center justify-center text-[#d4af37] group-hover:bg-[#d4af37] group-hover:text-black transition">
+                                    🎫
+                                </div>
+                                <div>
+                                    <p class="font-bold text-[#e6ccb2] font-heritage">${pass.attraction}</p>
+                                    <p class="text-xs text-gray-500 uppercase tracking-wider">${pass.visitor} • ${pass.time}</p>
+                                </div>
+                            </div>
+                            <span class="text-xs font-bold border border-current px-2 py-1 rounded ${statusColor}">${pass.status}</span>
+                        </div>
+                    </div>
+                `;
+                list.innerHTML += item;
+            });
+        }
+
+        // Populates mock alerts (no backend call needed here)
+        function populateAlerts() {
+            const container = document.getElementById('alerts-container');
+            const alerts = [
+                { type: 'critical', title: 'Hawa Mahal at 95% Capacity', desc: 'Immediate intervention required. Divert traffic to Jantar Mantar.' },
+                { type: 'warning', title: 'Bikaner Occupancy Declining', desc: '-12% trend. Initiate "Desert Gold" campaign.' },
+                { type: 'info', title: 'Weather Optimal', desc: '24°C, Clear skies. Expect +15% evening surge at Nahargarh.' },
+                { type: 'success', title: 'Pushkar Festival Surge', desc: '+22% YoY growth. Premium tents fully booked.' }
+            ];
+
+            alerts.forEach(alert => {
+                let borderClass = 'border-blue-500';
+                let icon = 'ℹ️';
+                
+                if(alert.type === 'critical') { borderClass = 'border-red-900'; icon = '🔴'; }
+                if(alert.type === 'warning') { borderClass = 'border-yellow-600'; icon = '⚠️'; }
+                if(alert.type === 'success') { borderClass = 'border-green-600'; icon = '✅'; }
+
+                const item = `
+                    <div class="p-4 rounded bg-[#151515] border-l-4 ${borderClass} hover:bg-[#1a1a1a] transition">
+                        <h4 class="font-bold text-[#e6ccb2] font-heritage text-sm">${icon} ${alert.title}</h4>
+                        <p class="text-gray-400 text-xs mt-1 font-elegant italic">${alert.desc}</p>
+                    </div>
+                `;
+                container.innerHTML += item;
+            });
+        }
+
+
+        // --- 3. FORM HANDLER (POST Request to Backend) ---
+
+        async function generatePass(event) {
+            event.preventDefault();
+            const form = event.target;
+            
+            // Extract form data
+            const newPassData = {
+                attraction_name: form.querySelector('select').value,
+                visitor_name: form.querySelector('input[type="text"]').value,
+                email: form.querySelector('input[type="email"]').value,
+                pass_type: form.querySelector('input[name="passType"]:checked').value,
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/passes/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newPassData),
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert(`✅ Pass Generated Successfully!\nPass ID: ${result.pass.pass_id}\nAttraction: ${result.pass.attraction}`);
+                    form.reset();
+                    fetchRecentPassesData(); // Refresh the list
+                } else {
+                    alert(`❌ Error generating pass: ${result.message || response.statusText}`);
+                }
+
+            } catch (error) {
+                console.error('Network or server error:', error);
+                alert('❌ Network Error. Could not connect to the backend server at ' + API_BASE_URL);
+            }
+        }
+
+
+        // --- 4. CHART INITIALIZATION (Mock Data for Charts) ---
+
+        // Global Chart Destruction function (Crucial for performance)
+        function destroyAllCharts() {
+            if (footfallChart) { footfallChart.destroy(); footfallChart = null; }
+            if (districtChart) { districtChart.destroy(); districtChart = null; }
+            if (forecastChart) { forecastChart.destroy(); forecastChart = null; }
+        }
+
+        function initFootfallChart() {
+            const ctx = document.getElementById('footfallChart');
+            if (!ctx) return;
+            footfallChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'],
+                    datasets: [{ label: 'Royal Entries', data: [2340, 2890, 3450, 4120, 3780, 4560, 5230, 4890, 3450, 2100, 1200, 650], borderColor: '#d4af37', backgroundColor: 'rgba(212, 175, 55, 0.1)', borderWidth: 2, fill: true, tension: 0.4, pointRadius: 4 }, { label: 'Exits', data: [1200, 1450, 2100, 2800, 2950, 3200, 3800, 4100, 4200, 3100, 1800, 900], borderColor: '#856930', backgroundColor: 'rgba(133, 105, 48, 0)', borderWidth: 2, borderDash: [5, 5], fill: false, tension: 0.4, pointRadius: 0 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#e6ccb2', font: { family: 'Cinzel' } } } }, scales: { y: { ticks: { color: '#888' }, grid: { color: 'rgba(255, 255, 255, 0.05)' } }, x: { ticks: { color: '#888' }, grid: { color: 'rgba(255, 255, 255, 0.05)' } } } }
+            });
+        }
+
+        function initDistrictChart() {
+            const ctx = document.getElementById('districtChart');
+            if (!ctx) return;
+            districtChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: { labels: ['Jaipur', 'Udaipur', 'Jodhpur', 'Pushkar', 'Others'], datasets: [{ data: [42, 18, 12, 15, 13], backgroundColor: ['#d4af37', '#800000', '#cd853f', '#556b2f', '#708090'], borderColor: '#0f0f10', borderWidth: 2 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#e6ccb2', font: { family: 'Cinzel' }, padding: 20 } } } }
+            });
+        }
+
+        function initForecastChart() {
+            const ctx = document.getElementById('forecastChart');
+            if (!ctx) return;
+            forecastChart = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: ['Dec 15', 'Dec 16', 'Dec 17', 'Dec 18', 'Dec 19', 'Dec 20', 'Dec 21', 'Dec 22', 'Dec 23', 'Dec 24', 'Dec 25'], datasets: [{ label: 'Projected Footfall', data: [12450, 13200, 14100, 15300, 16800, 18500, 19200, 18900, 17300, 15800, 14200], backgroundColor: '#d4af37', borderRadius: 2 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: '#888' }, grid: { color: 'rgba(255, 255, 255, 0.05)' } }, x: { ticks: { color: '#888' }, grid: { display: false } } } }
+            });
+        }
+
+        // Switch tabs logic
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            
+            document.getElementById(tabName + '-tab').classList.remove('hidden');
+            
+            // Get the button element that triggered the click
+            const targetButton = event.target.closest('.tab-btn');
+            if (targetButton) {
+                targetButton.classList.add('active');
+            }
+
+            destroyAllCharts(); 
+
+            if (tabName === 'dashboard') {
+                initFootfallChart();
+                initDistrictChart();
+            } else if (tabName === 'analytics') {
+                initForecastChart();
+            }
+        }
+
+
+        // --- FINAL EXECUTION BLOCK ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Start the time updater
+            setInterval(updateTime, 1000);
+            updateTime();
+
+            // Initial data fetch and chart setup for the default 'dashboard' tab
+            fetchAttractionData();
+            fetchRecentPassesData();
+
+            initFootfallChart();
+            initDistrictChart();
+            populateAlerts(); 
+        });
+
+    </script>
+</body>
+</html>

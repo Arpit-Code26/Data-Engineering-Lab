@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Tourism Crowd Analyzer</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a1a;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 { margin-bottom: 10px; }
+
+        .container {
+            position: relative;
+            width: 720px;
+            max-width: 100%;
+        }
+
+        video {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+            border: 2px solid #333;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .stats-panel {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            background: #333;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .stat-box {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #4db8ff;
+        }
+
+        .stat-label { font-size: 0.9rem; color: #ccc; }
+
+        .gemini-section {
+            width: 100%;
+            max-width: 720px;
+            margin-top: 20px;
+            background: #2d2d2d;
+            padding: 20px;
+            border-radius: 10px;
+            box-sizing: border-box;
+        }
+
+        input[type="text"] {
+            width: 70%;
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            margin-right: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #008cba;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover { background-color: #007bb5; }
+
+        #gemini-response {
+            margin-top: 15px;
+            font-style: italic;
+            line-height: 1.5;
+            background: #222;
+            padding: 10px;
+            border-radius: 5px;
+            min-height: 50px;
+        }
+
+        #loading { color: yellow; margin-bottom: 10px; }
+    </style>
+    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+</head>
+<body>
+
+    <h1>Tourism Crowd Analyzer AI</h1>
+    <div id="loading">Loading AI Models (Please wait)...</div>
+
+    <div class="container">
+        <video id="video" width="720" height="540" autoplay muted></video>
+        </div>
+
+    <div class="stats-panel">
+        <div class="stat-box">
+            <div class="stat-value" id="count">0</div>
+            <div class="stat-label">Head Count</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value" id="male-percent">0%</div>
+            <div class="stat-label">Male</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value" id="female-percent">0%</div>
+            <div class="stat-label">Female</div>
+        </div>
+    </div>
+
+    <div class="gemini-section">
+        <h3>Gemini AI Advisor</h3>
+        <p>Enter your Gemini API Key to get suggestions based on current crowd demographics.</p>
+        <div style="display:flex;">
+            <input type="text" id="apiKey" placeholder="Paste Gemini API Key here...">
+            <button onclick="askGemini()">Get Suggestions</button>
+        </div>
+        <div id="gemini-response">Suggestions will appear here...</div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const countDisplay = document.getElementById('count');
+        const maleDisplay = document.getElementById('male-percent');
+        const femaleDisplay = document.getElementById('female-percent');
+        const loadingMsg = document.getElementById('loading');
+
+        // Global variables to store current stats
+        let currentStats = {
+            total: 0,
+            male: 0,
+            female: 0
+        };
+
+        // 1. Load Models
+        // We use the author's hosted models for simplicity in this demo.
+        const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+
+        Promise.all([
+            faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+            faceapi.nets.ageGenderNet.loadFromUri(MODEL_URL)
+        ]).then(startVideo).catch(err => {
+            console.error(err);
+            loadingMsg.innerText = "Error loading AI models. Check console.";
+            loadingMsg.style.color = "red";
+        });
+
+        // 2. Start Video Stream
+        function startVideo() {
+            navigator.mediaDevices.getUserMedia({ video: {} })
+                .then(stream => video.srcObject = stream)
+                .catch(err => console.error("Camera error:", err));
+        }
+
+        // 3. Run Detection Loop
+        video.addEventListener('play', () => {
+            loadingMsg.style.display = 'none';
+            
+            // Create canvas overlay
+            const canvas = faceapi.createCanvasFromMedia(video);
+            document.querySelector('.container').append(canvas);
+            const displaySize = { width: video.width, height: video.height };
+            faceapi.matchDimensions(canvas, displaySize);
+
+            setInterval(async () => {
+                // Detect all faces with gender
+                const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
+                    .withAgeAndGender();
+
+                // Resize results to match video size
+                const resizedDetections = faceapi.resizeResults(detections, displaySize);
+
+                // Clear previous drawings
+                canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+
+                // Draw detection boxes
+                faceapi.draw.drawDetections(canvas, resizedDetections);
+
+                // Calculate Stats
+                let maleCount = 0;
+                let femaleCount = 0;
+                let total = resizedDetections.length;
+
+                resizedDetections.forEach(d => {
+                    const { gender } = d;
+                    // Draw gender label on screen
+                    const box = d.detection.box;
+                    const drawBox = new faceapi.draw.DrawBox(box, { label: gender });
+                    drawBox.draw(canvas);
+
+                    if(gender === 'male') maleCount++;
+                    else femaleCount++;
+                });
+
+                // Update UI
+                currentStats.total = total;
+                currentStats.male = total > 0 ? Math.round((maleCount / total) * 100) : 0;
+                currentStats.female = total > 0 ? Math.round((femaleCount / total) * 100) : 0;
+
+                countDisplay.innerText = currentStats.total;
+                maleDisplay.innerText = currentStats.male + '%';
+                femaleDisplay.innerText = currentStats.female + '%';
+
+            }, 500); // Run every 500ms
+        });
+
+        // 4. Gemini API Integration
+        async function askGemini() {
+            const apiKey = document.getElementById('apiKey').value;
+            const responseDiv = document.getElementById('gemini-response');
+            
+            if (!apiKey) {
+                alert("Please enter a valid Gemini API Key.");
+                return;
+            }
+
+            responseDiv.innerText = "Analyzing crowd data with Gemini...";
+
+            const prompt = `
+                I am managing a tourism site. 
+                Currently, I have a crowd of ${currentStats.total} people.
+                The demographic is ${currentStats.male}% Male and ${currentStats.female}% Female.
+                Based on this real-time data, suggest 3 quick marketing or operational actions I should take right now to improve their experience or increase sales.
+                Keep it concise.
+            `;
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{ text: prompt }]
+                        }]
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.candidates && data.candidates[0].content) {
+                    const answer = data.candidates[0].content.parts[0].text;
+                    // Simple formatting for display
+                    responseDiv.innerHTML = answer.replace(/\n/g, '<br>');
+                } else {
+                    responseDiv.innerText = "Error fetching suggestion. Check API key or quota.";
+                }
+
+            } catch (error) {
+                console.error("Gemini Error:", error);
+                responseDiv.innerText = "Network error connecting to Gemini.";
+            }
+        }
+    </script>
+</body>
+</html>

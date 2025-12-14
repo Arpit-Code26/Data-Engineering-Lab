@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Person Counter</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+    
+    <style>
+        body { font-family: monospace; background: #222; color: #fff; text-align: center; padding: 20px; }
+        #video-container { position: relative; display: inline-block; margin-top: 20px; border: 4px solid #444; }
+        video { display: block; }
+        canvas { position: absolute; top: 0; left: 0; }
+        
+        .debug-box { background: #000; color: #0f0; padding: 10px; text-align: left; height: 100px; overflow-y: scroll; border: 1px solid #555; margin-bottom: 20px; }
+        
+        .stats { font-size: 2rem; color: yellow; margin: 10px 0; }
+        
+        button { padding: 10px 20px; cursor: pointer; font-size: 1rem; margin: 5px; }
+        .btn-green { background: #28a745; color: white; border: none; }
+        .btn-blue { background: #007bff; color: white; border: none; }
+    </style>
+</head>
+<body>
+
+    <h1>Debug Camera & AI Counter</h1>
+    
+    <div class="debug-box" id="log">System initialized...<br></div>
+
+    <div>
+        <button class="btn-green" onclick="startCam()">1. Force Start Camera</button>
+        <button class="btn-blue" onclick="loadAI()">2. Load AI Model</button>
+    </div>
+
+    <div class="stats">Humans: <span id="count">0</span></div>
+
+    <div id="video-container">
+        <video id="webcam" width="640" height="480" autoplay muted playsinline></video>
+        <canvas id="canvas" width="640" height="480"></canvas>
+    </div>
+    
+    <div style="margin-top:20px; background:#333; padding:15px;">
+        <h3>Gemini Advisor</h3>
+        <input type="text" id="apiKey" placeholder="Paste API Key" style="padding:5px; width:200px;">
+        <button onclick="askGemini()">Get Advice</button>
+        <div id="gemini-out" style="margin-top:10px; color:#ccc;"></div>
+    </div>
+
+    <script>
+        const video = document.getElementById('webcam');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const logDiv = document.getElementById('log');
+        let model = undefined;
+
+        function log(msg) {
+            logDiv.innerHTML += `> ${msg}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        // 1. Force Camera Access
+        async function startCam() {
+            log("Requesting Camera Access...");
+            try {
+                // Constraints to force standard webcam
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'user', width: 640, height: 480 },
+                    audio: false 
+                });
+                video.srcObject = stream;
+                
+                video.onloadeddata = () => {
+                    log("Camera Success! Video is streaming.");
+                };
+            } catch (err) {
+                log("CAMERA ERROR: " + err.message);
+                log("NOTE: If opening via file://, camera is BLOCKED by Chrome. Use a local server.");
+                alert("Camera Failed. Check the Debug Log.");
+            }
+        }
+
+        // 2. Load COCO-SSD Model
+        async function loadAI() {
+            if (!video.srcObject) { alert("Please start camera first!"); return; }
+            
+            log("Loading AI Model (coco-ssd)... please wait...");
+            try {
+                model = await cocoSsd.load();
+                log("AI Model Loaded! Starting detection loop...");
+                detectFrame();
+            } catch (err) {
+                log("AI ERROR: " + err.message);
+            }
+        }
+
+        // 3. Detection Loop
+        function detectFrame() {
+            model.detect(video).then(predictions => {
+                renderPredictions(predictions);
+                requestAnimationFrame(detectFrame);
+            });
+        }
+
+        function renderPredictions(predictions) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let count = 0;
+
+            predictions.forEach(prediction => {
+                // Only track 'person' class
+                if (prediction.class === 'person') {
+                    count++;
+                    const [x, y, width, height] = prediction.bbox;
+                    
+                    // Draw box
+                    ctx.strokeStyle = "#00FFFF";
+                    ctx.lineWidth = 4;
+                    ctx.strokeRect(x, y, width, height);
+                    
+                    // Draw Label
+                    ctx.fillStyle = "#00FFFF";
+                    ctx.font = "18px Arial";
+                    ctx.fillText("Person " + Math.round(prediction.score * 100) + "%", x, y > 10 ? y - 5 : 10);
+                }
+            });
+            document.getElementById('count').innerText = count;
+        }
+
+        // 4. Gemini
+        async function askGemini() {
+            const key = document.getElementById('apiKey').value;
+            const count = document.getElementById('count').innerText;
+            const out = document.getElementById('gemini-out');
+            
+            if(!key) return alert("Enter API Key");
+            out.innerText = "Thinking...";
+            
+            try {
+                const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ contents: [{ parts: [{ text: `I have ${count} people at my tourism site. Give 1 short tip.` }] }] })
+                });
+                const data = await resp.json();
+                out.innerText = data.candidates[0].content.parts[0].text;
+            } catch(e) { out.innerText = "Error: " + e.message; }
+        }
+    </script>
+</body>
+</html>

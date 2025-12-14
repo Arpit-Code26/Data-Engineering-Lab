@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Tourism Counter (MediaPipe)</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/vision_bundle.js" crossorigin="anonymous"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #121212; color: white; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        
+        .main-container { position: relative; border: 3px solid #00ff88; border-radius: 10px; overflow: hidden; width: 640px; max-width: 100%; }
+        video { display: block; width: 100%; transform: scaleX(-1); /* Mirror effect */ }
+        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: scaleX(-1); }
+
+        .stats { 
+            margin-top: 15px; background: #222; padding: 20px; border-radius: 10px; 
+            display: flex; gap: 30px; width: 640px; justify-content: center;
+        }
+        .stat-item { text-align: center; }
+        .stat-val { font-size: 2.5rem; font-weight: bold; color: #00ff88; }
+        .stat-label { color: #888; font-size: 0.9rem; }
+
+        .gemini-panel {
+            margin-top: 20px; background: #333; padding: 20px; border-radius: 10px; width: 640px;
+        }
+        .controls { display: flex; gap: 10px; }
+        input { flex: 1; padding: 10px; border: none; border-radius: 5px; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #0056b3; }
+        #gemini-out { margin-top: 15px; color: #ccc; font-style: italic; line-height: 1.5; }
+        
+        #status { color: yellow; margin-bottom: 10px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1>Global Tourism Site Counter</h1>
+    <div id="status">Initializing System...</div>
+
+    <div class="main-container">
+        <video id="webcam" autoplay playsinline muted></video>
+        <canvas id="output_canvas"></canvas>
+    </div>
+
+    <div class="stats">
+        <div class="stat-item">
+            <div class="stat-val" id="count">0</div>
+            <div class="stat-label">Live Head Count</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-val" id="fps">--</div>
+            <div class="stat-label">System FPS</div>
+        </div>
+    </div>
+
+    <div class="gemini-panel">
+        <h3>🤖 AI Business Consultant</h3>
+        <p style="font-size:0.9rem; color:#aaa;">Enter Gemini API Key to get suggestions based on crowd density.</p>
+        <div class="controls">
+            <input type="password" id="apiKey" placeholder="Paste Gemini API Key here...">
+            <button onclick="askGemini()">Analyze Crowd</button>
+        </div>
+        <div id="gemini-out">Suggestions will appear here...</div>
+    </div>
+
+    <script type="module">
+        import { FaceDetector, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/vision_bundle.js";
+
+        const video = document.getElementById("webcam");
+        const canvas = document.getElementById("output_canvas");
+        const ctx = canvas.getContext("2d");
+        const statusDiv = document.getElementById("status");
+        let faceDetector;
+        let lastVideoTime = -1;
+        let currentCount = 0;
+
+        // 1. Setup AI (MediaPipe)
+        async function initializeAI() {
+            try {
+                const vision = await FilesetResolver.forVisionTasks(
+                    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
+                );
+                faceDetector = await FaceDetector.createFromOptions(vision, {
+                    baseOptions: {
+                        modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite`,
+                        delegate: "GPU"
+                    },
+                    runningMode: "VIDEO"
+                });
+                statusDiv.innerText = "AI Ready. Starting Camera...";
+                startCamera();
+            } catch(e) {
+                statusDiv.innerText = "AI Failed: " + e.message;
+            }
+        }
+
+        // 2. Setup Camera
+        function startCamera() {
+            navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } }).then((stream) => {
+                video.srcObject = stream;
+                video.addEventListener("loadeddata", predictWebcam);
+            }).catch(err => {
+                statusDiv.innerText = "Camera Error: " + err.message;
+            });
+        }
+
+        // 3. Detection Loop
+        let lastTime = 0;
+        async function predictWebcam() {
+            if (!faceDetector) return;
+
+            // Resize canvas to match video
+            if(canvas.width !== video.videoWidth) {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+            }
+
+            let startTimeMs = performance.now();
+            
+            // Only detect if video has new frame
+            if (video.currentTime !== lastVideoTime) {
+                lastVideoTime = video.currentTime;
+                const detections = faceDetector.detectForVideo(video, startTimeMs).detections;
+                
+                // Draw
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                currentCount = detections.length;
+
+                detections.forEach(det => {
+                    const box = det.boundingBox;
+                    // Draw Box
+                    ctx.strokeStyle = "#00ff88";
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(box.originX, box.originY, box.width, box.height);
+                    
+                    // Draw Label
+                    ctx.fillStyle = "#00ff88";
+                    ctx.font = "16px Arial";
+                    ctx.fillText(`Visitor`, box.originX, box.originY - 5);
+                });
+
+                // Update UI
+                document.getElementById("count").innerText = currentCount;
+                
+                // Calculate FPS
+                const fps = 1000 / (startTimeMs - lastTime);
+                lastTime = startTimeMs;
+                document.getElementById("fps").innerText = Math.round(fps);
+                
+                statusDiv.innerText = "System Active & Counting";
+                statusDiv.style.color = "#00ff88";
+            }
+            window.requestAnimationFrame(predictWebcam);
+        }
+
+        // 4. Gemini Logic
+        window.askGemini = async function() {
+            const key = document.getElementById("apiKey").value;
+            const out = document.getElementById("gemini-out");
+
+            if(!key) { alert("Please enter API Key"); return; }
+            out.innerText = "Analyzing...";
+
+            const prompt = `I am managing a tourism site. Right now, there are ${currentCount} people detected in this specific area. Suggest 2 operational actions I should take immediately for this crowd size.`;
+
+            try {
+                const req = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+                    method: "POST", headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                const data = await req.json();
+                out.innerHTML = data.candidates[0].content.parts[0].text.replace(/\n/g, '<br>');
+            } catch(e) {
+                out.innerText = "Gemini Error: " + e.message;
+            }
+        }
+
+        initializeAI();
+    </script>
+</body>
+</html>
